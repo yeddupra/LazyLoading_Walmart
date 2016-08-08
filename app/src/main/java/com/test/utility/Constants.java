@@ -13,7 +13,7 @@ public class Constants {
     public static final String WALMART_BASEURL = "https://walmartlabs-test.appspot.com/_ah/api/walmart/v1/walmartproducts/ed1cc699-0183-4c03-8c22-03834224e89a/";
 
 
-    public static final int PAGE_SIZE = 10;
+    public static final int PAGE_SIZE = 5;
 
 
     public static final int ONESTAR   = 1;

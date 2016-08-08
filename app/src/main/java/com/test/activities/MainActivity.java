@@ -9,12 +9,14 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 
-import android.widget.Button;
+import android.widget.AbsListView;
+
 import android.widget.ListView;
-import android.widget.Toast;
+
 
 import com.google.gson.Gson;
 import com.test.adapter.LazyLoadImageAdapter;
+
 import com.test.model.ProductItemsList;
 import com.test.network.TestIntentService;
 import com.test.utility.Constants;
@@ -59,22 +61,23 @@ public class MainActivity extends BaseActivity {
                                             productItemsList = TempProductItemsList;
                                             loadListView();
                                         }
+                                        //TODO: Instead of downloading based on Swipe , this can be enabled to download more smoothly
+                                        /*if (productItemsList.getTotalProducts() > (pageNumber * Constants.PAGE_SIZE)) {
+                                            pageNumber++;
+                                            if(pageNumber * Constants.PAGE_SIZE>productItemsList.getTotalProducts())
+                                            {
+                                                downloadProductList(Constants.WALMART_BASEURL + pageNumber + "/" +
+                                                        (productItemsList.getTotalProducts()-((pageNumber-1) * Constants.PAGE_SIZE)));
+                                            }
+                                            else
+                                            {
+                                                downloadProductList(Constants.WALMART_BASEURL + pageNumber + "/" + Constants.PAGE_SIZE);
+                                            }
+                                        }*/
                                     }
                                     catch(Exception e)
                                     {
                                         e.printStackTrace();
-                                    }
-                                    if (productItemsList.getTotalProducts() > (pageNumber * Constants.PAGE_SIZE)) {
-                                        pageNumber++;
-                                        if(pageNumber * Constants.PAGE_SIZE>productItemsList.getTotalProducts())
-                                        {
-                                            downloadProductList(Constants.WALMART_BASEURL + pageNumber + "/" +
-                                                    (productItemsList.getTotalProducts()-((pageNumber-1) * Constants.PAGE_SIZE)));
-                                        }
-                                        else
-                                        {
-                                            downloadProductList(Constants.WALMART_BASEURL + pageNumber + "/" + Constants.PAGE_SIZE);
-                                        }
                                     }
                                 }
                                 catch(Exception e)
@@ -94,17 +97,46 @@ public class MainActivity extends BaseActivity {
             }
         };
 
-
+        list = (ListView) findViewById(R.id.list);
         loadListView();
-        ShowProgressBar("Loading Items........");
         downloadProductList(Constants.WALMART_BASEURL+pageNumber+"/"+Constants.PAGE_SIZE);
 
+
+
     }
+
     void loadListView()
     {
-        list = (ListView) findViewById(R.id.list);
         adapter = new LazyLoadImageAdapter(this, productItemsList);
         list.setAdapter(adapter);
+        list.setOnScrollListener(new AbsListView.OnScrollListener() {
+            boolean downloadAdditionalData =  false;
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                if((visibleItemCount+firstVisibleItem) ==totalItemCount)
+                {
+                    downloadAdditionalData = true;
+                }
+            }
+
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE) {
+                    Log.i("a", "scrolling stopped...");
+                    if(downloadAdditionalData) {
+                        if (productItemsList.getTotalProducts() > (pageNumber * Constants.PAGE_SIZE)) {
+                            pageNumber++;
+                            if (pageNumber * Constants.PAGE_SIZE > productItemsList.getTotalProducts()) {
+                                downloadProductList(Constants.WALMART_BASEURL + pageNumber + "/" +
+                                        (productItemsList.getTotalProducts() - ((pageNumber - 1) * Constants.PAGE_SIZE)));
+                            } else {
+                                downloadProductList(Constants.WALMART_BASEURL + pageNumber + "/" + Constants.PAGE_SIZE);
+                            }
+                            downloadAdditionalData =  false;
+                        }
+                    }
+                }
+            }
+        });
+
     }
     @Override
     protected void onResume() {
@@ -112,6 +144,7 @@ public class MainActivity extends BaseActivity {
     }
     void downloadProductList(String url)
     {
+        ShowProgressBar("Loading Items........");
         Intent intent = new Intent(this,TestIntentService.class);
         intent.putExtra("receiver", mReceiver);
         intent.putExtra("URL",url);
